@@ -16,7 +16,7 @@ class SlackSettings(BaseModel):
 
 class GeminiSettings(BaseModel):
     api_key: str
-    model: str = "gemini-1.5-pro"
+    model: str = "gemini-2.0-flash-exp"
 
 
 class JiraSettings(BaseModel):
