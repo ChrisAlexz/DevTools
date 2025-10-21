@@ -8,61 +8,118 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class SlackSettings(BaseModel):
-    bot_token: str = Field(alias="SLACK_BOT_TOKEN")
-    app_token: str = Field(alias="SLACK_APP_TOKEN")
-    signing_secret: str = Field(alias="SLACK_SIGNING_SECRET")
-    team_id: str = Field(alias="SLACK_TEAM_ID")
+    bot_token: str
+    app_token: str
+    signing_secret: str
+    team_id: str
 
 
 class GeminiSettings(BaseModel):
-    api_key: str = Field(alias="GEMINI_API_KEY")
-    model: str = Field(default="gemini-1.5-pro")
+    api_key: str
+    model: str = "gemini-1.5-pro"
 
 
 class JiraSettings(BaseModel):
-    base_url: str = Field(alias="JIRA_BASE_URL")
-    email: str = Field(alias="JIRA_EMAIL")
-    api_token: str = Field(alias="JIRA_API_TOKEN")
-    project_key: str = Field(alias="JIRA_PROJECT_KEY")
+    base_url: str
+    email: str
+    api_token: str
+    project_key: str
 
 
 class GitHubSettings(BaseModel):
-    app_id: str = Field(alias="GITHUB_APP_ID")
-    installation_id: str = Field(alias="GITHUB_INSTALLATION_ID")
-    private_key_path: Path = Field(alias="GITHUB_PRIVATE_KEY_PATH")
-    repo_full_name: str = Field(alias="GITHUB_REPO_FULL_NAME")
-    main_branch: str = Field(alias="GITHUB_MAIN_BRANCH", default="main")
+    app_id: str
+    installation_id: str
+    private_key_path: Path
+    repo_full_name: str
+    main_branch: str = "main"
 
 
 class WorkflowSettings(BaseModel):
-    monorepo_root: Path = Field(alias="MONOREPO_ROOT", default=Path("."))
-    code_search_glob: str = Field(alias="CODE_SEARCH_GLOB", default="src/**/*.py")
-    default_assignee: Optional[str] = Field(alias="DEFAULT_ASSIGNEE", default=None)
-    default_reviewers: List[str] = Field(alias="DEFAULT_REVIEWERS", default_factory=list)
-
-    @classmethod
-    def validate_default_reviewers(cls, value: Optional[str]) -> List[str]:
-        if not value:
-            return []
-        return [reviewer.strip() for reviewer in value.split(",") if reviewer.strip()]
+    monorepo_root: Path = Path(".")
+    code_search_glob: str = "src/**/*.py"
+    default_assignee: Optional[str] = None
+    default_reviewers: List[str] = []
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=True)
+    model_config = SettingsConfigDict(
+        env_file=".env", 
+        env_file_encoding="utf-8", 
+        extra="ignore"
+    )
 
-    slack: SlackSettings
-    gemini: GeminiSettings
-    jira: JiraSettings
-    github: GitHubSettings
-    workflow: WorkflowSettings
+    # Slack
+    SLACK_BOT_TOKEN: str
+    SLACK_APP_TOKEN: str
+    SLACK_SIGNING_SECRET: str
+    SLACK_TEAM_ID: str
 
-    @classmethod
-    def load(cls, env_file: str | Path = ".env") -> "Settings":
-        settings = cls(_env_file=env_file)
-        workflow_alias_dump = settings.model_dump(by_alias=True).get("workflow", {})
-        default_reviewers_value = workflow_alias_dump.get("DEFAULT_REVIEWERS")
-        settings.workflow.default_reviewers = WorkflowSettings.validate_default_reviewers(default_reviewers_value)
-        return settings
+    # Gemini
+    GEMINI_API_KEY: str
+
+    # Jira
+    JIRA_BASE_URL: str
+    JIRA_EMAIL: str
+    JIRA_API_TOKEN: str
+    JIRA_PROJECT_KEY: str
+
+    # GitHub
+    GITHUB_APP_ID: str
+    GITHUB_INSTALLATION_ID: str
+    GITHUB_PRIVATE_KEY_PATH: str
+    GITHUB_REPO_FULL_NAME: str
+    GITHUB_MAIN_BRANCH: str = "main"
+
+    # Workflow
+    MONOREPO_ROOT: str = "."
+    CODE_SEARCH_GLOB: str = "src/**/*.py"
+    DEFAULT_ASSIGNEE: Optional[str] = None
+    DEFAULT_REVIEWERS: Optional[str] = None
+
+    @property
+    def slack(self) -> SlackSettings:
+        return SlackSettings(
+            bot_token=self.SLACK_BOT_TOKEN,
+            app_token=self.SLACK_APP_TOKEN,
+            signing_secret=self.SLACK_SIGNING_SECRET,
+            team_id=self.SLACK_TEAM_ID,
+        )
+
+    @property
+    def gemini(self) -> GeminiSettings:
+        return GeminiSettings(api_key=self.GEMINI_API_KEY)
+
+    @property
+    def jira(self) -> JiraSettings:
+        return JiraSettings(
+            base_url=self.JIRA_BASE_URL,
+            email=self.JIRA_EMAIL,
+            api_token=self.JIRA_API_TOKEN,
+            project_key=self.JIRA_PROJECT_KEY,
+        )
+
+    @property
+    def github(self) -> GitHubSettings:
+        return GitHubSettings(
+            app_id=self.GITHUB_APP_ID,
+            installation_id=self.GITHUB_INSTALLATION_ID,
+            private_key_path=Path(self.GITHUB_PRIVATE_KEY_PATH),
+            repo_full_name=self.GITHUB_REPO_FULL_NAME,
+            main_branch=self.GITHUB_MAIN_BRANCH,
+        )
+
+    @property
+    def workflow(self) -> WorkflowSettings:
+        reviewers = []
+        if self.DEFAULT_REVIEWERS:
+            reviewers = [r.strip() for r in self.DEFAULT_REVIEWERS.split(",") if r.strip()]
+        
+        return WorkflowSettings(
+            monorepo_root=Path(self.MONOREPO_ROOT),
+            code_search_glob=self.CODE_SEARCH_GLOB,
+            default_assignee=self.DEFAULT_ASSIGNEE,
+            default_reviewers=reviewers,
+        )
 
 
-settings = Settings.load()
+settings = Settings()
