@@ -10,7 +10,7 @@ import structlog
 from config import settings
 from github_client import GitHubService
 from jira_client import JiraService
-from llm import ClaudeService
+from llm import GeminiService
 from utils.filesystem import load_repo_snippets
 
 logger = structlog.get_logger(__name__)
@@ -31,7 +31,7 @@ class DevSyncOrchestrator:
     def __init__(self) -> None:
         self.github = GitHubService(settings.github, settings.workflow)
         self.jira = JiraService(settings.jira)
-        self.claude = ClaudeService(settings.anthropic)
+        self.gemini = GeminiService(settings.gemini)
 
     def process_bug_report(self, context: ConversationContext) -> Dict[str, Any]:
         logger.info("processing_bug_report.started", context=context)
@@ -41,7 +41,7 @@ class DevSyncOrchestrator:
         )
         logger.info("processing_bug_report.repo_snippets_loaded", snippet_count=len(repo_snippets))
 
-        analysis = self.claude.analyze_conversation(
+        analysis = self.gemini.analyze_conversation(
             text=context.raw_text,
             repo_snippets=repo_snippets,
             slack_link=context.slack_permalink,

@@ -14,9 +14,9 @@ class SlackSettings(BaseModel):
     team_id: str = Field(alias="SLACK_TEAM_ID")
 
 
-class AnthropicSettings(BaseModel):
-    api_key: str = Field(alias="ANTHROPIC_API_KEY")
-    model: str = Field(default="claude-3-5-sonnet-20240620")
+class GeminiSettings(BaseModel):
+    api_key: str = Field(alias="GEMINI_API_KEY")
+    model: str = Field(default="gemini-1.5-pro")
 
 
 class JiraSettings(BaseModel):
@@ -51,7 +51,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=True)
 
     slack: SlackSettings
-    anthropic: AnthropicSettings
+    gemini: GeminiSettings
     jira: JiraSettings
     github: GitHubSettings
     workflow: WorkflowSettings
@@ -59,7 +59,6 @@ class Settings(BaseSettings):
     @classmethod
     def load(cls, env_file: str | Path = ".env") -> "Settings":
         settings = cls(_env_file=env_file)
-        # Pydantic already handled the defaults; ensure list conversion happens
         workflow_alias_dump = settings.model_dump(by_alias=True).get("workflow", {})
         default_reviewers_value = workflow_alias_dump.get("DEFAULT_REVIEWERS")
         settings.workflow.default_reviewers = WorkflowSettings.validate_default_reviewers(default_reviewers_value)
